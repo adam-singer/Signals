@@ -1,0 +1,7 @@
+name: signals
+version: 0.1.0
+author: Nicholas Bilyk
+environment:
+  sdk: '>=0.7.6'
+dev_dependencies:
+  unittest: any
