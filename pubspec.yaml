@@ -1,6 +1,7 @@
-name: signals
+name: blix_signals
 version: 0.1.0
 author: Nicholas Bilyk
+homepage: https://github.com/nbilyk/Signals
 environment:
   sdk: '>=0.7.6'
 dev_dependencies:

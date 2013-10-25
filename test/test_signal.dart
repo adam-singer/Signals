@@ -1,9 +1,7 @@
 library test_signal;
 
 import "package:unittest/unittest.dart";
-import "package:signals/signals.dart";
-
-void blash(Map s) {}
+import "package:blix_signals/signals.dart";
 
 void main() {
 
