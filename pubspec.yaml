@@ -1,6 +1,7 @@
 name: blix_signals
 version: 0.1.0
-author: Nicholas Bilyk
+author: Nicholas Bilyk <nick@nbilyk.com>
+description: Signals are a lightweight, strongly typed observer pattern.
 homepage: https://github.com/nbilyk/Signals
 environment:
   sdk: '>=0.7.6'

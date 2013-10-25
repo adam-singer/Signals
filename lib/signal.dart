@@ -100,7 +100,6 @@ class Signal<T> implements ISignal {
 	bool _isDispatching = false;
 
 	final LinkedList<_HandlerEntry<T>> _handlers = new LinkedList<_HandlerEntry<T>>();
-	final LinkedList<_HandlerEntry<T>> _pendingHandlers = new LinkedList<_HandlerEntry<T>>();
 	final Map<Handler<T>, _HandlerEntry<T>> _handlerEntryMap = new Map<Handler<T>, _HandlerEntry<T>>();
 
 	/**
@@ -114,12 +113,7 @@ class Signal<T> implements ISignal {
 		if (_handlerEntryMap.containsKey(handler)) return false;
 		_HandlerEntry<T> entry = new _HandlerEntry<T>(handler, isOnce);
 		_handlerEntryMap[handler] = entry;
-
-		if (_isDispatching) {
-			_pendingHandlers.add(entry);
-		} else {
-			_handlers.add(entry);
-		}
+		_handlers.add(entry);
 		return true;
 	}
 
@@ -131,7 +125,6 @@ class Signal<T> implements ISignal {
 		if (!_enabled) throw new StateError("This Signal has been destroyed.");
 		if (!_handlerEntryMap.containsKey(handler)) return false;
 		_HandlerEntry<T> entry = _handlerEntryMap.remove(handler);
-		if (_isDispatching) _pendingHandlers.remove(entry);
 		bool success = _handlers.remove(entry);
 		return true;
 	}
@@ -139,7 +132,6 @@ class Signal<T> implements ISignal {
 	void clear() {
 		if (!_enabled) throw new StateError("This Signal has been destroyed.");
 		_handlers.clear();
-		_pendingHandlers.clear();
 		_handlerEntryMap.clear();
 	}
 
@@ -155,17 +147,13 @@ class Signal<T> implements ISignal {
 				if (current.isOnce) {
 					_handlers.remove(current);
 				}
-	      current = next;
-	    }
-			if (_pendingHandlers.length > 0) {
-				_handlers.addAll(_pendingHandlers);
-				_pendingHandlers.clear();
-			}
+				current = next;
+	    	}
 		}
 		_isDispatching = false;
 	}
 
-	bool get isEmpty => _handlers.isEmpty && _pendingHandlers.isEmpty;
+	bool get isEmpty => _handlers.isEmpty;
 
 	bool get isNotEmpty => !isEmpty;
 
