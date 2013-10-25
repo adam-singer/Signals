@@ -68,6 +68,23 @@ abstract class ISignal<T> {
 	void dispatch(T arg);
 
 	/**
+	 * Returns true if the signal has no handlers.
+	 */
+	bool get isEmpty;
+
+	/**
+	 * Returns true if the signal has handlers.
+	 *
+	 * This is particularly useful for optimizing whether work needs to be done before dispatch.
+	 * e.g.
+	 * 	if (mySignal.isNotEmpty) {
+	 * 		Event e = new Event(e);
+	 * 		mySignal.dispatch(e);
+	 * 	}
+	 */
+	bool get isNotEmpty;
+
+	/**
 	 * Destroys the signal, removing all handlers.
 	 * If any operations are acted on this signal after destruction, a StateError is thrown.
 	 */
@@ -147,6 +164,10 @@ class Signal<T> implements ISignal {
 		}
 		_isDispatching = false;
 	}
+
+	bool get isEmpty => _handlers.isEmpty && _pendingHandlers.isEmpty;
+
+	bool get isNotEmpty => !isEmpty;
 
 	void destroy() {
 		removeAll();

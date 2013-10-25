@@ -120,5 +120,21 @@ void main() {
 			expect(c, 3);
 		});
 
+		test("isEmpty", () {
+			Signal<int> signal = new Signal<int>();
+			expect(signal.isEmpty, true);
+			signal.add((int c) => c++, true);
+			expect(signal.isEmpty, false);
+			signal.dispatch(1);
+			expect(signal.isEmpty, true);
+			signal.add((int c) => c++);
+			signal.add((int c) => c++);
+			signal.add((int c) => c++);
+			expect(signal.isEmpty, false);
+			signal.removeAll();
+			expect(signal.isEmpty, true);
+
+		});
+
 	});
 }
