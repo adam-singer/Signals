@@ -96,11 +96,11 @@ void main() {
 			expect(() => signal.dispatch("Should fail."), throws, reason: "The signal should have thrown an error calling dispatch() after destruction.");
 			expect(() => signal.add((String s) => c++), throws, reason: "The signal should have thrown an error calling add() after destruction.");
 			expect(() => signal.remove((String s) => c++), throws, reason: "The signal should have thrown an error calling remove() after destruction.");
-			expect(() => signal.removeAll(), throws, reason: "The signal should have thrown an error calling removeAll() after destruction.");
+			expect(() => signal.clear(), throws, reason: "The signal should have thrown an error calling clear() after destruction.");
 
 		});
 
-		test("removeAll", () {
+		test("clear", () {
 			int c = 0;
 			Function h = (String s) => c++;
 			Function j = (String s) => c++;
@@ -109,13 +109,13 @@ void main() {
 			signal.add(j);
 			signal.dispatch("Hi");
 			expect(c, 2);
-			signal.removeAll();
+			signal.clear();
 			signal.dispatch("Hi");
 			expect(c, 2);
 			signal.add(h);
 			signal.dispatch("Hi");
 			expect(c, 3);
-			signal.removeAll();
+			signal.clear();
 			signal.dispatch("Hi");
 			expect(c, 3);
 		});
@@ -131,7 +131,7 @@ void main() {
 			signal.add((int c) => c++);
 			signal.add((int c) => c++);
 			expect(signal.isEmpty, false);
-			signal.removeAll();
+			signal.clear();
 			expect(signal.isEmpty, true);
 
 		});

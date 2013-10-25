@@ -60,7 +60,7 @@ abstract class ISignal<T> {
 	/**
 	 * Removes all handlers from the list.
 	 */
-	void removeAll();
+	void clear();
 
 	/**
 	 * Dispatches the Signal, invoking every added handler.
@@ -136,7 +136,7 @@ class Signal<T> implements ISignal {
 		return true;
 	}
 
-	void removeAll() {
+	void clear() {
 		if (!_enabled) throw new StateError("This Signal has been destroyed.");
 		_handlers.clear();
 		_pendingHandlers.clear();
@@ -170,7 +170,7 @@ class Signal<T> implements ISignal {
 	bool get isNotEmpty => !isEmpty;
 
 	void destroy() {
-		removeAll();
+		clear();
 		_enabled = false;
 	}
 }
