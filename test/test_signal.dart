@@ -157,30 +157,40 @@ void main() {
 			expect(order, <int>[0, 1, 2, 4, 5, 6]);
 		});
 
-		test("concurrent modifications are handled gracefully", () {
-			int c = 0;
-			Signal<int> signal = new Signal<int>();
-			var f = (int i) => c++;
+		group("concurrent modifications -", () {
+			test("adding handlers during a dispatch will cause those handlers to be invoked on the next dispatch", () {
+				int c = 0;
+				var incC = (int i) => c++;
+				Signal<int> signal = new Signal<int>();
 
-			signal.add((int i) {
-				signal.add(f);
-			}, true);
+				bool isAdded = signal.add((int i) {
+					expect(signal.add(incC), true);
+					expect(signal.add(incC), false);
+				}, true);
+				expect(isAdded, true);
 
-			signal.dispatch(0); // The first handler will add f().
-			expect(c, 0);
-			signal.dispatch(0);
-			expect(c, 1);
+				expect(signal.length, 1);
+				signal.dispatch(0); // The first handler will add incC().
+				expect(signal.length, 1); // The first handler removed, incC added
+				expect(c, 0); // Expect incC not to be called on the first dispatch.
+				signal.dispatch(0);
+				expect(c, 1);
+			});
 
-			signal.clear();
-			signal.add((int i) {
-				signal.remove(f);
-			}, true);
-			signal.add(f);
-
-			signal.dispatch(0);
-			c = 0;
-			signal.dispatch(0);
-			expect(c, 0);
+			test("removing handlers during a dispatch will cause those handlers not to be invoked on the next dispatch", () {
+				int c = 0;
+				var incC = (int i) => c++;
+				Signal<int> signal = new Signal<int>();
+				signal.add((int i) {
+					signal.remove(incC);
+				}, true);
+				signal.add(incC);
+				signal.dispatch(0);
+				expect(c, 1); // Expect that
+				c = 0;
+				signal.dispatch(0);
+				expect(c, 0);
+			});
 
 		});
 
