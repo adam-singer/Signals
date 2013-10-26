@@ -2,7 +2,7 @@
 // All rights reserved. Use of this source code is governed by an
 // Apache 2.0 license that can be found in the LICENSE file.
 
-part of signals;
+part of blix_signals;
 
 /**
  * A type definition for a callback.
