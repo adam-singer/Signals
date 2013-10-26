@@ -8,6 +8,12 @@ Signals for Dart
 
  The Signal object at a basic level is a list of methods to be invoked when the Signal is dispatched.
 
+ To get started, first add blix_signals to your pubspec.yaml
+
+ dependencies:
+  blix_signals: any
+
+
  Usage Example:
 
      import 'package:blix_signals/signals.dart';
@@ -55,7 +61,7 @@ Signals for Dart
 
  1. The signal is described in past tense.
 
- 2. The dispatch is surrounded by an [isNotEmpty] check.  This is only important for performance if the message
+ 2. The dispatch is surrounded by an isNotEmpty check.  This is only important for performance if the message
  requires work to be done.  That is, if the message requires a new object to be created, it is best to
  optimize for the case if there are no handlers.
 
