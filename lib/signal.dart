@@ -67,7 +67,6 @@ class _HandlerEntry<T> extends LinkedListEntry {
  *     	var deliveryPerson = new DeliveryPerson();
  *     	deliveryPerson.watchMilkable(cow);
  *     	cow.milk(); // added 1 milk
- *     	signal.main();
  *     }
  *
  * Three conventions should be pointed out:
