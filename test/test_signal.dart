@@ -93,10 +93,10 @@ void main() {
 			signal.dispatch("Hi");
 			signal.destroy();
 
-			expect(() => signal.dispatch("Should fail."), throws, reason: "The signal should have thrown an error calling dispatch() after destruction.");
-			expect(() => signal.add((String s) => c++), throws, reason: "The signal should have thrown an error calling add() after destruction.");
-			expect(() => signal.remove((String s) => c++), throws, reason: "The signal should have thrown an error calling remove() after destruction.");
-			expect(() => signal.clear(), throws, reason: "The signal should have thrown an error calling clear() after destruction.");
+			expect(() => signal.dispatch("Should fail."), throwsStateError, reason: "The signal should have thrown an error calling dispatch() after destruction.");
+			expect(() => signal.add((String s) => c++), throwsStateError, reason: "The signal should have thrown an error calling add() after destruction.");
+			expect(() => signal.remove((String s) => c++), throwsStateError, reason: "The signal should have thrown an error calling remove() after destruction.");
+			expect(() => signal.clear(), throwsStateError, reason: "The signal should have thrown an error calling clear() after destruction.");
 
 		});
 
@@ -186,10 +186,55 @@ void main() {
 				}, true);
 				signal.add(incC);
 				signal.dispatch(0);
-				expect(c, 1); // Expect that
+				expect(c, 1); // Expect that even though the first handler is called first and removes the incC handler, the incC handler should still be called.
 				c = 0;
 				signal.dispatch(0);
-				expect(c, 0);
+				expect(c, 0); // The incC should not be called on the second dispatch because it was removed during the first.
+			});
+
+			test("removing an isOnce handler during dispatch", () {
+				int c = 0;
+				Signal<int> signal = new Signal<int>();
+				var onceF;
+				onceF = (int i) {
+					signal.remove(onceF);
+					c++;
+				};
+				signal.add(onceF, true);
+				signal.dispatch(0);
+				expect(c, 1);
+				signal.dispatch(0);
+				expect(c, 1);
+			});
+
+			test("clearing during dispatch", () {
+				int c = 0;
+				Signal<int> signal = new Signal<int>();
+
+				signal.add((int i) => signal.clear());
+				var incC = (int i) {
+					c++;
+				};
+				signal.add(incC);
+				signal.dispatch(0); // Will call a handler with signal.clear()
+				expect(c, 1); // Should finish the dispatch.
+				signal.dispatch(0);
+				expect(c, 1); // incC should have been cleared.
+			});
+
+			test("removing an isOnce handler during dispatch", () {
+				int c = 0;
+				Signal<int> signal = new Signal<int>();
+				var incC = (int i) {
+					c++;
+				};
+				signal.add((int i) => signal.remove(incC));
+				signal.add(incC, true);
+
+				signal.dispatch(0); // Will call a handler with signal.clear()
+				expect(c, 1); // Should finish the dispatch.
+				signal.dispatch(0);
+				expect(c, 1); // incC should have been cleared.
 			});
 
 		});
