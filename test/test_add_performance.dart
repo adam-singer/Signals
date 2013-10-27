@@ -21,12 +21,10 @@ class SignalAddBenchmark extends BenchmarkBase {
 
 	// The benchmark code.
 	void run() {
-		_s = new Signal<int>();
 		var n = 100;
 		while (n-- > 0) {
 			_s.add((int i) {});
 		}
-		_s.dispatch(0);
 	}
 
 	// Not measured setup code executed prior to the benchmark runs.
@@ -51,13 +49,10 @@ class StreamAddBenchmark extends BenchmarkBase {
 
 	// The benchmark code.
 	void run() {
-		streamController = new StreamController<int>.broadcast(sync: true);
- 		stream = streamController.stream;
 		var n = 100;
 		while (n-- > 0) {
-			stream.first.then((int i) {});
+			stream.listen((int i) {});
 		}
-		streamController.add(0);
 	}
 
 	// Not measured setup code executed prior to the benchmark runs.

@@ -233,6 +233,22 @@ void main() {
 				expect(c, 1); // incC should have been cleared.
 			});
 
+			test("isEmpty is correct during a dispatch", () {
+				Signal<int> signal = new Signal<int>();
+				Function f;
+				f = (int i) {
+					signal.remove(f);
+					expect(signal.isEmpty, true);
+					expect(signal.isNotEmpty, false);
+					signal.add(f);
+					expect(signal.isEmpty, false);
+					expect(signal.isNotEmpty, true);
+				};
+
+				signal.add(f);
+				signal.dispatch(0); // The handler removes itself.
+			});
+
 		});
 
 

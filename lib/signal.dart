@@ -10,20 +10,6 @@ part of blix_signals;
 typedef Handler<T>(T param);
 
 /**
- * A private class used for handler entries in the Signal's linked lists.
- */
-class _HandlerEntry<T> {
-
-	final Handler<T> handler;
-	final bool isOnce;
-
-	_HandlerEntry<T> previous;
-	_HandlerEntry<T> next;
-
-	_HandlerEntry(this.handler, this.isOnce);
-}
-
-/**
  * Signals are a light-weight, strongly-typed way to implement the observer pattern. They allow you
  * to explicitly define the messages your objects provide, without relying on metadata or documentation.
  *
@@ -166,14 +152,35 @@ abstract class IDispatcher<T> {
 	void dispatch(T);
 }
 
+abstract class _LinkedListEntry<T extends _LinkedListEntry> {
+	T previous;
+	T next;
+}
+
+/**
+ * A private class used for handler entries in the Signal's linked lists.
+ */
+class _HandlerEntry<T> implements _LinkedListEntry<_HandlerEntry<T>> {
+
+	final Handler<T> handler;
+	final bool isOnce;
+
+	_HandlerEntry<T> previous;
+	_HandlerEntry<T> next;
+
+	_HandlerEntry(this.handler, this.isOnce);
+}
+
+
 /**
  * An optimized linked list specifically for signals.
  */
-class _HandlerList<T> {
-	_HandlerEntry<T> head;
-	_HandlerEntry<T> tail;
+class _SimpleLinkedList<T extends _LinkedListEntry> {
 
-	void add(_HandlerEntry<T> entry) {
+	T head;
+	T tail;
+
+	void add(T entry) {
 		if (head == null) {
 			head = entry;
 			tail = entry;
@@ -184,7 +191,7 @@ class _HandlerList<T> {
 		}
 	}
 
-	void remove(_HandlerEntry<T> entry) {
+	void remove(T entry) {
 		if (entry.previous != null) entry.previous.next = entry.next;
 		if (entry.next != null) entry.next.previous = entry.previous;
 		if (entry == head) {
@@ -195,32 +202,17 @@ class _HandlerList<T> {
 		}
 	}
 
-	void removeByHandler(Handler<T> handler) {
-		_HandlerEntry<T> entry = findByHandler(handler);
-		if (entry != null) remove(entry);
-	}
-
-	bool contains(Handler<T> handler) {
-		_HandlerEntry<T> entry = findByHandler(handler);
-		return entry != null;
-	}
-
-	_HandlerEntry<T> findByHandler(Handler<T> handler) {
-		_HandlerEntry<T> entry = head;
-		while (entry != null) {
-			if (entry.handler == handler) return entry;
-			entry = entry.next;
-		}
-		return null;
-	}
-
 	void clear() {
 		head = null;
 		tail = null;
 	}
 }
 
-class _PendingCall {
+class _PendingCall implements _LinkedListEntry<_PendingCall> {
+
+	_LinkedListEntry<_PendingCall> previous;
+	_LinkedListEntry<_PendingCall> next;
+
 	Function method;
 	List args;
 
@@ -242,10 +234,9 @@ class Signal<T> implements ISignal<T>, IDispatcher<T> {
 	bool _enabled = true;
 	bool _isDispatching = false;
 
-	final _HandlerList<T> _handlers = new _HandlerList<T>();
-	final List<_PendingCall> _pendingCalls = new List<_PendingCall>();
+	final _SimpleLinkedList<_HandlerEntry<T>> _handlers = new _SimpleLinkedList<_HandlerEntry<T>>();
+	final _SimpleLinkedList<_PendingCall> _pendingCalls = new _SimpleLinkedList<_PendingCall>();
 	int _length = 0;
-
 
 	/**
 	 * Creates a new Signal object.
@@ -259,7 +250,7 @@ class Signal<T> implements ISignal<T>, IDispatcher<T> {
 		_length++;
 
 		if (_isDispatching) {
-		_pendingCalls.add(new _PendingCall(_handlers.add, [entry]));
+			_pendingCalls.add(new _PendingCall(_handlers.add, [entry]));
 		} else {
 			_handlers.add(entry);
 		}
@@ -270,22 +261,36 @@ class Signal<T> implements ISignal<T>, IDispatcher<T> {
 		add(handler, true);
 	}
 
-	void remove(Handler<T> handler) {
+	bool remove(Handler<T> handler) {
 		if (!_enabled) throw new StateError("This Signal has been destroyed.");
-
+		_HandlerEntry<T> entry = findByHandler(handler);
+		if (entry == null) return false;
+		_length--;
 		if (_isDispatching) {
-			_pendingCalls.add(new _PendingCall(_handlers.removeByHandler, [handler]));
+			_pendingCalls.add(new _PendingCall(_handlers.remove, [entry]));
 		} else {
-			_handlers.removeByHandler(handler);
+			_handlers.remove(entry);
 		}
+		return true;
 	}
 
 	bool contains(Handler<T> handler) {
-		return _handlers.contains(handler);
+		_HandlerEntry<T> entry = findByHandler(handler);
+		return entry != null;
+	}
+
+	_HandlerEntry<T> findByHandler(Handler<T> handler) {
+		_HandlerEntry<T> entry = _handlers.head;
+		while (entry != null) {
+			if (entry.handler == handler) return entry;
+			entry = entry.next;
+		}
+		return null;
 	}
 
 	void clear() {
 		if (!_enabled) throw new StateError("This Signal has been destroyed.");
+		_length = 0;
 		if (_isDispatching) {
 			_pendingCalls.add(new _PendingCall(_handlers.clear, []));
 		} else {
@@ -302,25 +307,31 @@ class Signal<T> implements ISignal<T>, IDispatcher<T> {
 		_isDispatching = true;
 		while (entry != null) {
 			if (entry.isOnce) {
+				_length--;
 				_handlers.remove(entry);
 			}
 			entry.handler(arg);
 			entry = entry.next;
 		}
 
-		if (_pendingCalls.isNotEmpty) {
-			_pendingCalls.forEach((_PendingCall pendingCall) {
-				pendingCall.invoke();
-			});
+		// Handle any calls to the signal while we were in the middle of dispatching.
+		if (_pendingCalls.head != null) {
+			_PendingCall call = _pendingCalls.head;
+			while (call != null) {
+				call.invoke();
+				call = call.next;
+			}
 			_pendingCalls.clear();
 		}
 
 		_isDispatching = false;
 	}
 
-	bool get isEmpty => _handlers.head == null;
+	bool get isEmpty => _length == 0;
 
-	bool get isNotEmpty => _handlers.head != null;
+	bool get isNotEmpty => _length > 0;
+
+	int get length => _length;
 
 	void destroy() {
 		clear();
