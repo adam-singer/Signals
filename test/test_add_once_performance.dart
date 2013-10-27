@@ -26,7 +26,6 @@ class SignalAddOnceBenchmark extends BenchmarkBase {
 	void _h8(int i) {}
 	void _h9(int i) {}
 
-
 	static void main() {
 		new SignalAddOnceBenchmark().report();
 	}

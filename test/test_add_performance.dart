@@ -15,16 +15,34 @@ class SignalAddBenchmark extends BenchmarkBase {
 
 	static Signal<int> _s;
 
+	void _h0(int i) {}
+	void _h1(int i) {}
+	void _h2(int i) {}
+	void _h3(int i) {}
+	void _h4(int i) {}
+	void _h5(int i) {}
+	void _h6(int i) {}
+	void _h7(int i) {}
+	void _h8(int i) {}
+	void _h9(int i) {}
+
+
 	static void main() {
 		new SignalAddBenchmark().report();
 	}
 
 	// The benchmark code.
 	void run() {
-		var n = 100;
-		while (n-- > 0) {
-			_s.add((int i) {});
-		}
+		_s.add(_h0);
+		_s.add(_h1);
+		_s.add(_h2);
+		_s.add(_h3);
+		_s.add(_h4);
+		_s.add(_h5);
+		_s.add(_h6);
+		_s.add(_h7);
+		_s.add(_h8);
+		_s.add(_h9);
 	}
 
 	// Not measured setup code executed prior to the benchmark runs.
@@ -43,16 +61,33 @@ class StreamAddBenchmark extends BenchmarkBase {
 	static StreamController<int> streamController;
 	static Stream<int> stream;
 
+	void _h0(int i) {}
+	void _h1(int i) {}
+	void _h2(int i) {}
+	void _h3(int i) {}
+	void _h4(int i) {}
+	void _h5(int i) {}
+	void _h6(int i) {}
+	void _h7(int i) {}
+	void _h8(int i) {}
+	void _h9(int i) {}
+
 	static void main() {
 		new StreamAddBenchmark().report();
 	}
 
 	// The benchmark code.
 	void run() {
-		var n = 100;
-		while (n-- > 0) {
-			stream.listen((int i) {});
-		}
+		stream.listen(_h0);
+		stream.listen(_h1);
+		stream.listen(_h2);
+		stream.listen(_h3);
+		stream.listen(_h4);
+		stream.listen(_h5);
+		stream.listen(_h6);
+		stream.listen(_h7);
+		stream.listen(_h8);
+		stream.listen(_h9);
 	}
 
 	// Not measured setup code executed prior to the benchmark runs.
