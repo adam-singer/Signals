@@ -198,6 +198,41 @@ void main() {
 				expect(c, 1); // incC should have been cleared.
 			});
 
+			test("contains returns true when the signal has the specified handler", () {
+				Signal<int> signal = new Signal<int>();
+				Function f0 = (int i) {};
+				Function f1 = (int i) {};
+				Function f2 = (int i) {};
+				signal.add(f0);
+				signal.add(f1);
+				expect(signal.contains(f0), true);
+				expect(signal.contains(f1), true);
+				expect(signal.contains(f2), false);
+				signal.add(f2);
+				expect(signal.contains(f0), true);
+				expect(signal.contains(f1), true);
+				expect(signal.contains(f2), true);
+				signal.remove(f1);
+				expect(signal.contains(f0), true);
+				expect(signal.contains(f1), false);
+				expect(signal.contains(f2), true);
+				signal.clear();
+				expect(signal.contains(f0), false);
+				expect(signal.contains(f1), false);
+				expect(signal.contains(f2), false);
+
+				signal.addOnce(f0);
+				signal.add(f1);
+				signal.add(f2);
+				expect(signal.contains(f0), true);
+				expect(signal.contains(f1), true);
+				expect(signal.contains(f2), true);
+				signal.dispatch(0);
+				expect(signal.contains(f0), false);
+				expect(signal.contains(f1), true);
+				expect(signal.contains(f2), true);
+			});
+
 		});
 
 

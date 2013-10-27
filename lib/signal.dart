@@ -123,6 +123,11 @@ abstract class ISignal<T> {
 	 */
 	void remove(Handler<T> handler);
 
+	/**
+	 * Returns true if the handler is currently in the list.
+	 */
+	bool contains(Handler<T> handler);
+
 
 	/**
 	 * Removes all handlers from the list.
@@ -193,6 +198,11 @@ class _HandlerList<T> {
 	void removeByHandler(Handler<T> handler) {
 		_HandlerEntry<T> entry = findByHandler(handler);
 		if (entry != null) remove(entry);
+	}
+
+	bool contains(Handler<T> handler) {
+		_HandlerEntry<T> entry = findByHandler(handler);
+		return entry != null;
 	}
 
 	_HandlerEntry<T> findByHandler(Handler<T> handler) {
@@ -268,6 +278,10 @@ class Signal<T> implements ISignal<T>, IDispatcher<T> {
 		} else {
 			_handlers.removeByHandler(handler);
 		}
+	}
+
+	bool contains(Handler<T> handler) {
+		return _handlers.contains(handler);
 	}
 
 	void clear() {
