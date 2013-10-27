@@ -28,41 +28,6 @@ void main() {
 			expect(c, 4);
 		});
 
-		test("ignores duplicate adds and removes", () {
-			int c = 0;
-			Signal<String> signal = new Signal<String>();
-
-			Function h = (String s) => c++;
-			Function j = (String s) => c++;
-			expect(signal.add(h), true);
-			expect(signal.add(h), false);
-			expect(signal.add(h), false);
-			signal.dispatch("Hi");
-			expect(c, 1);
-			expect(signal.add(j), true);
-			expect(signal.add(h), false);
-			signal.dispatch("Hi");
-			expect(c, 3);
-			expect(signal.add(j), false);
-			expect(signal.add(h), false);
-			expect(signal.add(j), false);
-			expect(signal.add(h), false);
-			expect(signal.add(j), false);
-			signal.dispatch("Hi");
-			expect(c, 5);
-			expect(signal.remove(j), true);
-			expect(signal.remove(j), false);
-			expect(signal.add(h), false);
-			expect(signal.add(h), false);
-			signal.dispatch("Hi");
-			expect(c, 6);
-			expect(signal.remove(h), true);
-			expect(signal.remove(h), false);
-			expect(signal.remove(j), false);
-			signal.dispatch("Hi");
-			expect(c, 6);
-		});
-
 		test("errs when adding mismatched handlers", () {
 			Signal<String> signal = new Signal<String>();
 			Function f = (int i) => i++; // Intentionally set as a dynamic Function to avoid compiler warnings.
@@ -163,15 +128,11 @@ void main() {
 				var incC = (int i) => c++;
 				Signal<int> signal = new Signal<int>();
 
-				bool isAdded = signal.add((int i) {
-					expect(signal.add(incC), true);
-					expect(signal.add(incC), false);
+				signal.add((int i) {
+					signal.add(incC);
 				}, true);
-				expect(isAdded, true);
 
-				expect(signal.length, 1);
 				signal.dispatch(0); // The first handler will add incC().
-				expect(signal.length, 1); // The first handler removed, incC added
 				expect(c, 0); // Expect incC not to be called on the first dispatch.
 				signal.dispatch(0);
 				expect(c, 1);

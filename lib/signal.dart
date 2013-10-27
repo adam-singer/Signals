@@ -12,10 +12,13 @@ typedef Handler<T>(T param);
 /**
  * A private class used for handler entries in the Signal's linked lists.
  */
-class _HandlerEntry<T> extends LinkedListEntry {
+class _HandlerEntry<T> {
 
 	final Handler<T> handler;
 	final bool isOnce;
+
+	_HandlerEntry<T> previous;
+	_HandlerEntry<T> next;
 
 	_HandlerEntry(this.handler, this.isOnce);
 }
@@ -105,25 +108,21 @@ abstract class ISignal<T> {
 	 * then re-add.
 	 *
 	*/
-	bool add(Handler<T> handler, [bool isOnce = false]);
+	void add(Handler<T> handler, [bool isOnce = false]);
 
 	/**
 	 * A convenience method which calls add() with the addOnce parameter set to true.
 	 * @see [add]
 	 */
-	bool addOnce(Handler<T> handler);
+	void addOnce(Handler<T> handler);
 
 	/**
 	 * Removes the given handler from the list.
 	 *
 	 * This call is not blocked during a dispatch.
 	 */
-	bool remove(Handler<T> handler);
+	void remove(Handler<T> handler);
 
-	/**
-	 * Returns true if the signal currently contains the given handler in its list.
-	 */
-	bool contains(Handler<T> handler);
 
 	/**
 	 * Removes all handlers from the list.
@@ -148,11 +147,6 @@ abstract class ISignal<T> {
 	bool get isNotEmpty;
 
 	/**
-	 * Returns the number of handlers.
-	 */
-	int get length;
-
-	/**
 	 * Destroys the signal, removing all handlers.
 	 * If any operations are acted on this signal after destruction, a StateError is thrown.
 	 */
@@ -167,6 +161,55 @@ abstract class IDispatcher<T> {
 	void dispatch(T);
 }
 
+/**
+ * An optimized linked list specifically for signals.
+ */
+class _HandlerList<T> {
+	_HandlerEntry<T> head;
+	_HandlerEntry<T> tail;
+
+	void add(_HandlerEntry<T> entry) {
+		if (head == null) {
+			head = entry;
+			tail = entry;
+		} else {
+			tail.next = entry;
+			entry.previous = tail;
+			tail = entry;
+		}
+	}
+
+	void remove(_HandlerEntry<T> entry) {
+		if (entry.previous != null) entry.previous.next = entry.next;
+		if (entry.next != null) entry.next.previous = entry.previous;
+		if (entry == head) {
+			head = entry.next;
+		}
+		if (entry == tail) {
+			tail = entry.previous;
+		}
+	}
+
+	void removeByHandler(Handler<T> handler) {
+		_HandlerEntry<T> entry = findByHandler(handler);
+		if (entry != null) remove(entry);
+	}
+
+	_HandlerEntry<T> findByHandler(Handler<T> handler) {
+		_HandlerEntry<T> entry = head;
+		while (entry != null) {
+			if (entry.handler == handler) return entry;
+			entry = entry.next;
+		}
+		return null;
+	}
+
+	void clear() {
+		head = null;
+		tail = null;
+	}
+}
+
 class _PendingCall {
 	Function method;
 	List args;
@@ -178,6 +221,8 @@ class _PendingCall {
 	}
 }
 
+
+
 /**
  * The basic implementation of [ISignal]. Refer to the [ISignal] documentation for the overview of
  * Signals and their use.
@@ -187,9 +232,10 @@ class Signal<T> implements ISignal<T>, IDispatcher<T> {
 	bool _enabled = true;
 	bool _isDispatching = false;
 
-	final LinkedList<_HandlerEntry<T>> _handlers = new LinkedList<_HandlerEntry<T>>();
-	final Map<Handler<T>, _HandlerEntry<T>> _handlerEntryMap = new Map<Handler<T>, _HandlerEntry<T>>();
+	final _HandlerList<T> _handlers = new _HandlerList<T>();
 	final List<_PendingCall> _pendingCalls = new List<_PendingCall>();
+	int _length = 0;
+
 
 	/**
 	 * Creates a new Signal object.
@@ -197,47 +243,35 @@ class Signal<T> implements ISignal<T>, IDispatcher<T> {
 	Signal() {
 	}
 
-	bool add(Handler<T> handler, [bool isOnce = false]) {
+	void add(Handler<T> handler, [bool isOnce = false]) {
 		if (!_enabled) throw new StateError("This Signal has been destroyed.");
-		if (_handlerEntryMap.containsKey(handler)) return false;
 		_HandlerEntry<T> entry = new _HandlerEntry<T>(handler, isOnce);
-		_handlerEntryMap[handler] = entry;
+		_length++;
 
 		if (_isDispatching) {
-			_pendingCalls.add(new _PendingCall(_handlers.add, [entry]));
+		_pendingCalls.add(new _PendingCall(_handlers.add, [entry]));
 		} else {
 			_handlers.add(entry);
 		}
-		return true;
 	}
 
-	bool addOnce(Handler<T> handler) {
+
+	void addOnce(Handler<T> handler) {
 		add(handler, true);
 	}
 
-	bool remove(Handler<T> handler) {
+	void remove(Handler<T> handler) {
 		if (!_enabled) throw new StateError("This Signal has been destroyed.");
-		if (!_handlerEntryMap.containsKey(handler)) return false;
-		_HandlerEntry<T> entry = _handlerEntryMap.remove(handler);
 
 		if (_isDispatching) {
-			_pendingCalls.add(new _PendingCall(_handlers.remove, [entry]));
+			_pendingCalls.add(new _PendingCall(_handlers.removeByHandler, [handler]));
 		} else {
-			_handlers.remove(entry);
+			_handlers.removeByHandler(handler);
 		}
-		return true;
-	}
-
-	/**
-	 * Returns true if the signal currently contains the given handler in its list.
-	 */
-	bool contains(Handler<T> handler) {
-		return _handlerEntryMap.containsKey(handler);
 	}
 
 	void clear() {
 		if (!_enabled) throw new StateError("This Signal has been destroyed.");
-		_handlerEntryMap.clear();
 		if (_isDispatching) {
 			_pendingCalls.add(new _PendingCall(_handlers.clear, []));
 		} else {
@@ -248,20 +282,18 @@ class Signal<T> implements ISignal<T>, IDispatcher<T> {
 	void dispatch(T arg) {
 		if (!_enabled) throw new StateError("This Signal has been destroyed.");
 		if (_isDispatching) throw new ConcurrentModificationError(this);
-		if (_handlers.isEmpty) return;
+		_HandlerEntry<T> entry = _handlers.head;
+		if (entry == null) return;
 
 		_isDispatching = true;
-		_HandlerEntry<T> current = _handlers.first;
-
-		while (current != null) {
-			_HandlerEntry<T> next = current.next;
-			if (current.isOnce) {
-				_handlers.remove(current);
-				_handlerEntryMap.remove(current.handler);
+		while (entry != null) {
+			if (entry.isOnce) {
+				_handlers.remove(entry);
 			}
-			current.handler(arg);
-			current = next;
-		};
+			entry.handler(arg);
+			entry = entry.next;
+		}
+
 		if (_pendingCalls.isNotEmpty) {
 			_pendingCalls.forEach((_PendingCall pendingCall) {
 				pendingCall.invoke();
@@ -272,11 +304,9 @@ class Signal<T> implements ISignal<T>, IDispatcher<T> {
 		_isDispatching = false;
 	}
 
-	bool get isEmpty => _handlers.isEmpty;
+	bool get isEmpty => _handlers.head == null;
 
-	bool get isNotEmpty => !isEmpty;
-
-	int get length => _handlerEntryMap.length;
+	bool get isNotEmpty => _handlers.head != null;
 
 	void destroy() {
 		clear();
