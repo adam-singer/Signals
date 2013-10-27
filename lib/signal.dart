@@ -256,7 +256,6 @@ class Signal<T> implements ISignal<T>, IDispatcher<T> {
 		}
 	}
 
-
 	void addOnce(Handler<T> handler) {
 		add(handler, true);
 	}

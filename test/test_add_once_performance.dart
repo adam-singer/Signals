@@ -33,7 +33,6 @@ class SignalAddOnceBenchmark extends BenchmarkBase {
 
 	// The benchmark code.
 	void run() {
-	_s = new Signal<int>();
 		_s.addOnce(_h0);
 		_s.addOnce(_h1);
 		_s.addOnce(_h2);
